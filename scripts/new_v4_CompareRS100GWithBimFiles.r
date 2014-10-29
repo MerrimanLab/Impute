@@ -6,9 +6,9 @@
 rev.comp<-function(x,rev=TRUE) {
   x<-toupper(x)
   y<-x
-        y[x=="A"]<-"T"    
-        y[x=="C"]<-"G"    
-        y[x=="G"]<-"C"    
+        y[x=="A"]<-"T"
+        y[x=="C"]<-"G"
+        y[x=="G"]<-"C"
         y[x=="T"]<-"A"
   y
 }
@@ -17,20 +17,19 @@ args <- commandArgs(T)
 
 i <- args[1]
 bim.file <- args[2]
-project <- args[3]
-dir<-args[4]
-path<-args[5]
+dir<-args[3]
+path<-args[4]
 
 setwd(paste(dir, "/original_data",sep=""))
 print(getwd())
-out.dir<-paste(dir,"/fixstrand/",project, sep="")
+out.dir<-paste(dir,"/fixstrand/", sep="")
 
-bim <- read.delim(bim.file, header=F,sep="\t",skip=0,fill=FALSE,stringsAsFactors=FALSE) 
+bim <- read.delim(bim.file, header=F,sep="\t",skip=0,fill=FALSE,stringsAsFactors=FALSE)
 bim.num <- 0
 bim.tot <- dim(bim)[1]
 
 ### 1000Genomes merged file -  have to do it per xsome
-genomes.file <- paste(path,"/UQCCG/GWAS/Data/1000G_phase1_v3_impute/ALL_1000G_phase1integrated_v3_impute/legend/ALL_1000G_phase1integrated_v3_chr",i,"_impute.legend", sep="")
+genomes.file <- paste(path,"/Bioinformatics/Reference_Files/Impute_ref_files/1000GP_Phase3/1000GP_Phase3_chr",i,".legend", sep="")
 
 out.delete <- paste(out.dir,"_chr",i,".delete", sep="")
 out.flip <- paste(out.dir,"_chr",i,".flip", sep="")
@@ -38,11 +37,13 @@ out.pos <- paste(out.dir,"_chr",i,".pos", sep="")
 out.chr <- paste(out.dir,"_chr",i,".chr", sep="")
 
 genomes <-read.table(genomes.file, header=T,stringsAsFactors=F)
-
-posns <- match(omni[,2],genomes[,1])
+genomes_rs <- genomes[,1]
+f <- function(s) strsplit(s, ":")[[1]][1]
+g_rs <-sapply(genomes_rs, f)
+posns <- match(bim[,2],g_rs)
 missing<-is.na(posns)
 sum(!missing)
-rs.match <- omni[!missing,]
+rs.match <- bim[!missing,]
 match<-genomes[posns[!missing],]
 
 dim(rs.match)
@@ -59,7 +60,7 @@ rsRemove <- {}
 to.flip <- (rs.match[,5] != match[,3])  & (rs.match[,5] != match[,4]) & (rs.match[,6] != match[,3]) & (rs.match[,6] != match[,4]) #{ ## FLIP as allles match the wrong way around
 
 ## THIS IS WHAT WE WILL BE using plink to enforce the REF ALLELE
-flip.me <- rs.match[to.flip,2]  
+flip.me <- rs.match[to.flip,2]
 flip.me[1:5]
 
 ## CHECK THE A-T & C-G SNPs
@@ -75,7 +76,7 @@ atcg.match[1:10,]
 atcg.rs.match[1:10,]
 
 minthr <- .45
-maxthr <- .55 
+maxthr <- .55
 posns <- (atcg.match[,"eur.aaf"] >=  minthr & atcg.match[,"eur.aaf"]  <= maxthr)
 
 missing<-is.na(posns)
@@ -83,20 +84,20 @@ atcg.match.new <- atcg.match[!posns,]
 atcg.rs.match.new <- atcg.rs.match[!posns,]
 
 ## These A-T & C-G the MAF is too ambigous
-rsRemove <-  atcg.match[posns,1] 
+rsRemove <-  atcg.match[posns,1]
 dim(atcg.match.new)
 dim(atcg.rs.match.new)
 
 atcg.match <- atcg.match.new
-atcg.rs.match <- atcg.rs.match.new 
+atcg.rs.match <- atcg.rs.match.new
 
-to.flip.atcg <- ((atcg.rs.match[,5] == atcg.match[,"a1"]) &  (as.numeric(atcg.match[,8]) > 0.5) ) |  ((atcg.rs.match[,5] == atcg.match[,"a0"]) &  (as.numeric(atcg.match[,8]) < 0.5) )  #|  ((atcg.rs.match[,6] == atcg.match[,"a1"]) &  (as.numeric(atcg.match[,8]) < 0.5) ) 
+to.flip.atcg <- ((atcg.rs.match[,5] == atcg.match[,"a1"]) &  (as.numeric(atcg.match[,8]) > 0.5) ) |  ((atcg.rs.match[,5] == atcg.match[,"a0"]) &  (as.numeric(atcg.match[,8]) < 0.5) )  #|  ((atcg.rs.match[,6] == atcg.match[,"a1"]) &  (as.numeric(atcg.match[,8]) < 0.5) )
 
 atcg.match[to.flip.atcg,][1:10,]
 atcg.rs.match[to.flip.atcg,][1:10,]
 
 dim(atcg.match[to.flip.atcg,])
-flip.me2 <- atcg.rs.match[to.flip.atcg,2] 
+flip.me2 <- atcg.rs.match[to.flip.atcg,2]
 
 ## Rev comp allelese to flip & A-T & C-G ones as well
 write.table(flip.me,out.flip,col.names=FALSE,row.names=FALSE,quote=FALSE,sep="\t",append=FALSE)
