@@ -31,23 +31,29 @@ bim.tot <- dim(bim)[1]
 ### 1000Genomes merged file -  have to do it per xsome
 genomes.file <- paste(path,"/Bioinformatics/Reference_Files/Impute_ref_files/1000GP_Phase3/1000GP_Phase3_chr",i,".legend", sep="")
 
+### dbsnp
+#dbsnp = read_delim("~/MurrayXsan/Bioinformatics/Reference_Files/BED/dbsnp144_GRCh37/bed_chr_22.bed", delim="\t", skip = 1, col_names = FALSE)
+
+
 out.delete <- paste(out.dir,"_chr",i,".delete", sep="")
 out.flip <- paste(out.dir,"_chr",i,".flip", sep="")
 out.pos <- paste(out.dir,"_chr",i,".pos", sep="")
 out.chr <- paste(out.dir,"_chr",i,".chr", sep="")
 out.alleles <-paste(out.dir,"_chr",i,".1kgAlleles", sep="")
 
+
 genomes <-read.table(genomes.file, header=T,stringsAsFactors=F)
-genomes_rs <- genomes[,1]
-f <- function(s) strsplit(s, ":")[[1]][1]
-g_rs <-sapply(genomes_rs, f)
-posns <- match(bim[,2],g_rs)
+#genomes_rs <- genomes[,1]
+#f <- function(s) strsplit(s, ":")[[1]][1]
+#g_rs <-sapply(genomes_rs, f)
+#posns <- match(bim[,2],g_rs)
+
+posns <- match( paste(bim[,1], bim[,4], sep=":"),paste(i,genomes[,2],sep=":"))
 missing<-is.na(posns)
 sum(!missing)
 rs.match <- bim[!missing,]
 match<-genomes[posns[!missing],]
-match$rs = g_rs[posns[!missing]]
-
+match$marker = paste(i,match$position,sep=":")
 dim(rs.match)
 dim(match)
 
@@ -100,12 +106,13 @@ atcg.rs.match[to.flip.atcg,][1:10,]
 
 dim(atcg.match[to.flip.atcg,])
 flip.me2 <- atcg.rs.match[to.flip.atcg,2]
-
-write.table(match[,c("id", "rs", "a0", "a1")], file=out.alleles, col.names=FALSE, row.names=FALSE, sep="\t", quote=FALSE)
-
+#write.table(match$a0, file=out.a0, col.names=FALSE, row.names=FALSE, sep="\t", quote=FALSE)
+#write.table(match$a1, file=out.a1, col.names=FALSE, row.names=FALSE, sep="\t", quote=FALSE)
 ## Rev comp allelese to flip & A-T & C-G ones as well
 write.table(flip.me,out.flip,col.names=FALSE,row.names=FALSE,quote=FALSE,sep="\t",append=FALSE)
 write.table(flip.me2,out.flip,col.names=FALSE,row.names=FALSE,quote=FALSE,sep="\t",append=TRUE)
+
+write.table(match[,c("id", "marker", "a0", "a1")], file=out.alleles, col.names=FALSE, row.names=FALSE, sep="\t", quote=FALSE)
 
 ### A-T & C-G allelese to delete - as the MAF is too close to tell. So these will be imputed
 write.table(rsRemove,out.delete,col.names=FALSE,row.names=FALSE,quote=FALSE,sep="\t",append=FALSE)
